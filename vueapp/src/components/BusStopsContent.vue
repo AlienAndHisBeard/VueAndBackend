@@ -129,9 +129,9 @@
         },
         methods: {
             onRowClick(params) {
-                // params.row - row object 
+                // params.row - row object
                 // params.pageIndex - index of this row on the current page.
-                // params.selected - if selection is enabled this argument 
+                // params.selected - if selection is enabled this argument
                 // indicates selected or not
                 // params.event - click event
                 this.fetchData("BusStops", params.row.StopId);
@@ -157,42 +157,44 @@
             },
             addBusStop() {
                 this.loading = true;
-                if (this.currentStopId == null || this.$store.state.userId == null)
+                let userToken = localStorage.getItem("user");
+                if (this.currentStopId == null || userToken == null)
                 {
                     this.loading = false;
                     return;
                 }
                 const requestOptions = {
                     method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify([this.$store.state.userId, this.currentStopId])
+                    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + userToken },
+                    body: Number(this.currentStopId)
                 };
                 fetch('/api/Users/AddUserBusStop', requestOptions)
                     .then(() => {
                         this.loading = false;
+                        this.$store.commit("updateKey");
                         return;
                     });
             },
             delBusStop() {
                 this.loading = true;
-                if (this.currentStopId == null || this.$store.state.userId == null)
+                let userToken = localStorage.getItem("user");
+                if (this.currentStopId == null || userToken == null)
                 {
                     this.loading = false;
                     return;
                 }
                 const requestOptions = {
                     method: "DELETE",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify([this.$store.state.userId, this.currentStopId])
+                    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + userToken },
+                    body: Number(this.currentStopId)
                 };
                 fetch('/api/Users/DeleteUserBusStop', requestOptions)
                     .then(() => {
                         this.loading = false;
+                        this.$store.commit("updateKey");
                         return;
                     });
             }
-            
-            
         },
     });
 </script>

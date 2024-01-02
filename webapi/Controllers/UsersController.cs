@@ -188,7 +188,7 @@ namespace webapi.Controllers
         // POST: api/Users/AddUserBusStop
         [Route("AddUserBusStop")]
         [HttpPost]
-        public async Task<IActionResult> AddUserBusStop(int id)
+        public async Task<IActionResult> AddUserBusStop([FromBody] int id)
         {
             if (_context == null || _context.Users.IsNullOrEmpty())
             {
@@ -215,7 +215,7 @@ namespace webapi.Controllers
         // DELETE: api/Users/DeleteUserBusStop
         [Route("DeleteUserBusStop")]
         [HttpDelete]
-        public async Task<IActionResult> DeleteUserBusStop(int id)
+        public async Task<IActionResult> DeleteUserBusStop([FromBody] int id)
         {
             if (_context == null || _context.Users.IsNullOrEmpty())
             {
@@ -233,7 +233,7 @@ namespace webapi.Controllers
             {
                 stopsId = stopsId.Where(s => s != id).ToList();
 
-                StringBuilder sb = new StringBuilder();
+                StringBuilder sb = new();
                 foreach (var stop in stopsId)
                 {
                     sb.AppendFormat("{0} ", stop);

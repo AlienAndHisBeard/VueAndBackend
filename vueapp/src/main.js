@@ -10,17 +10,14 @@ import App from './App.vue';
 import 'vue-good-table-next/dist/vue-good-table-next.css';
 
 const store = createStore({
-    plugins: [createPersistedState({
-        storage: window.sessionStorage,
-    })],
     state () {
         return {
-            userId: null
+            key: 0
         }
     },
     mutations: {
-        updateUserId(state, id) {
-            state.userId = id;
+        updateKey(state) {
+            state.key++;
         }
     }
 })
@@ -28,6 +25,11 @@ const store = createStore({
 var app = createApp(App);
 app.use(VueGoodTablePlugin);
 app.use(store);
+router.beforeEach((to, from) => {
+    if (from.fullPath == "/Logout" || from.fullPath == "/Login") {
+        
+    }
+})
 app.use(router);
 
 

@@ -12,7 +12,7 @@ The solution contains an ASP.NET Api backend and Vue.js frontend.
 - Adding and deleting favourite stops,
 - JWT Bearer authorization.
 
-![BackendPreview](./Backend.png)
+![BackendPreviewInSwagger](./Backend.png)
 
 # Frontend offers:
 - Searchable, sortable and selectable list of all stops,
@@ -21,6 +21,8 @@ The solution contains an ASP.NET Api backend and Vue.js frontend.
 - Basic user login and registration,
 - Favourite stops of the user,
 - Addition or deletion to/from the favourites of the selected stop
+- JWT Bearer User Token
 
-TODO: JWT Bearer authorization
-![BackendPreview](./Frontend.png)
+![FrontendPreview](./Frontend.png)
+![FrontendPreview](./Frontend2.png)
+![FrontendPreview](./Frontend3.png)

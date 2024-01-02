@@ -8,15 +8,15 @@ import SupportIcon from './icons/IconSupport.vue'
 <template>
   
 
-  <UserContentItem v-if="userId">
+  <UserContentItem v-if="user">
     <template #icon>
       <ToolingIcon />
     </template>
     <template #heading>Account</template>
-    {{ userId }}
+    {{ user }}
   </UserContentItem>
 
-  <UserContentItem v-if="userId">
+  <UserContentItem v-if="user">
     <template #icon>
       <SupportIcon @click="fetchData()"/>
     </template>
@@ -38,12 +38,16 @@ import SupportIcon from './icons/IconSupport.vue'
 
 <script lang="js">
     import { defineComponent } from 'vue';
+    import VueJwtDecode from "vue-jwt-decode";
 
     export default defineComponent({
         data() {
             return {
                 loading: false,
-                busStops: null
+                busStops: null,
+                user: null,
+                list: [],
+                timer: ''
             };
         },
         created() {
@@ -53,28 +57,28 @@ import SupportIcon from './icons/IconSupport.vue'
         },
         watch: {
             // call again the method if the route changes
-            '$route': 'fetchData'
-        },
-        computed: {
-            userId: {
-                get () {
-                    return this.$store.state.userId
-                },
-            }
+            '$route': 'fetchData',
+            '$store.state.key': 'fetchData'
         },
         methods: {
-          fetchData() {
-            if (this.$store.state.userId == null) return;
-            this.busStops = null;
-            this.loading = true;
-            fetch('/api/Users/'+this.$store.state.userId+'/BusStops')
-                .then(r => r.json())
-                .then(json => {
-                    this.busStops = json;
-                    this.loading = false;
-                    return;
-                });
-          }
-        },
+            fetchData() {
+                let userToken = localStorage.getItem("user");
+                if (userToken == null) return;
+                this.busStops = null;
+                this.loading = true;
+                this.user = VueJwtDecode.decode(userToken).sub;
+                const requestOptions = {
+                    method: "GET",
+                    headers: { "Content-Type": "application/json", "Authorization": "Bearer " + userToken }
+                };
+                fetch('/api/Users/BusStops', requestOptions)
+                    .then(r => r.json())
+                    .then(json => {
+                        this.busStops = json;
+                        this.loading = false;
+                        return;
+                    });
+            }
+        }
     });
 </script>

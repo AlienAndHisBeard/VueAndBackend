@@ -1,26 +1,19 @@
 <template>
-    <main>
-
-    
+ <main>
     <div class="post" >
         <div v-if="loading" class="loading">
             Loading...
         </div>
 
-        <div v-else-if="userId>0">
-
-        </div>
-
         <div v-else style="display:inline-flexbox; flex-direction:column!; width: 200px; height: 400px; align-content: center;">
             <p v-if="error">{{ error }}</p>
             <p>Enter login: </p>
-            <input v-model="username" placeholder="username">
+            <input v-model="login.login" placeholder="username">
             <p>Enter password:</p>
-            <input v-model="password" placeholder="password">
+            <input v-model="login.password" placeholder="password">
             <button @click="tryLogin" style="width: 100px;height: 30px; align-self: center; margin-left: 20%; margin-top: 3%;">Login</button>
             <button @click="tryRegister" style="width: 100px;height: 30px; align-self: center; margin-left: 20%; margin-top: 3%;">Register</button>
-        </div>
-        
+        </div> 
     </div>
 </main>
 </template>
@@ -33,36 +26,27 @@
             return {
                 loading: false,
                 post: null,
-                username: null,
-                password: null,
+                login: {
+                    id: 0,
+                    login: null,
+                    password: null,
+                    busStops: ""
+                },
                 error: null
             };
         },
-        computed: {
-            userId: {
-                get () {
-                    return this.$store.state.userId
-                },
-                set (value) {
-                    this.$store.commit('updateUserId', value)
-                }
-            }
-        },
         created() {
-            // fetch the data when the view is created and the data is
-            // already being observed
-            if ( this.$store.state.userId )
-            {
-                sessionStorage.clear();
-                this.$store.commit('updateUserId', null)
-                sessionStorage.clear();
+            // logout the user if logged in
+            if (localStorage.getItem("user")) {
+                localStorage.removeItem("user");
+                this.$router.push({ path: "/" });
             }
         },
         methods: {
             tryLogin() {
                 this.post = null;
                 this.loading = true;
-                if (this.username == null || this.password == null)
+                if (this.login.login == null || this.login.password == null)
                 {
                     this.error = "You need to fill out the credentials first.";
                     this.loading = false;
@@ -71,15 +55,15 @@
                 const requestOptions = {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({id:0, login: this.username, password: this.password, busStops:"" })
+                    body: JSON.stringify(this.login)
                 };
                 fetch('/api/Users/login', requestOptions)
-                    .then(r => r.json())
+                    .then(r => r.text())
                     .then(json => {
+                        localStorage.setItem("user", json);
                         this.post = json;
                         this.loading = false;
                         this.error = "Succesfully logged in";
-                        this.userId = json['id'];
                         this.$router.push({ path: "/" });
                         return;
                     });
@@ -87,7 +71,7 @@
             tryRegister() {
                 this.post = null;
                 this.loading = true;
-                if (this.username == null || this.password == null)
+                if (this.login.username == null || this.login.password == null)
                 {
                     this.error = "You need to fill out the credentials first.";
                     this.loading = false;
@@ -96,15 +80,15 @@
                 const requestOptions = {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({id:0, login: this.username, password: this.password, busStops:"" })
+                    body: JSON.stringify(this.login)
                 };
                 fetch('/api/Users', requestOptions)
                     .then(r => r.json())
                     .then(json => {
+                        localStorage.setItem("user", json);
                         this.post = json;
                         this.loading = false;
-                        this.error = "Succesfully logged in";
-                        this.userId = json['id'];
+                        this.error = "Succesfully registered";
                         this.$router.push({ path: "/" });
                         return;
                     });
