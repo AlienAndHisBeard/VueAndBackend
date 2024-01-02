@@ -1,30 +1,37 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.IdentityModel.Tokens.Jwt;
 using System.Linq;
+using System.Security.Claims;
 using System.Security.Policy;
 using System.Text;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Newtonsoft.Json;
+using NuGet.Protocol.Plugins;
 using webapi.Data;
 using webapi.Models;
 
 namespace webapi.Controllers
 {
+    [Authorize]
     [Route("api/[controller]")]
     [ApiController]
     public class UsersController : ControllerBase
     {
         private readonly ZtmDbContext _context;
+        private readonly IConfiguration _configuration;
         private readonly HttpClient _client = new();
 
-        public UsersController(ZtmDbContext context)
+        public UsersController(ZtmDbContext context, IConfiguration configuration)
         {
             _context = context;
+            _configuration = configuration;
 
             // default user
             if (_context.Users.IsNullOrEmpty())
@@ -36,6 +43,7 @@ namespace webapi.Controllers
         }
 
         // GET: api/Users
+        [AllowAnonymous]
         [HttpGet]
         public async Task<ActionResult<IEnumerable<string>>> GetUsers()
         {
@@ -49,13 +57,17 @@ namespace webapi.Controllers
 
         // POST: api/Users
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        [AllowAnonymous]
         [HttpPost]
         public async Task<ActionResult<User>> PostUser(User user)
         {
             if (_context == null || _context.Users.IsNullOrEmpty())
             {
-              return Problem("Entity set 'ZtmDbContext.Users' is null or empty.");
+                return Problem("Entity set 'ZtmDbContext.Users' is null or empty.");
             }
+
+            var result = await _context.Users.FirstAsync(e => e.Login == user.Login);
+            if (result != null) { return NotFound(); }
 
             _context.Users.Add(new User() { Login = user.Login, Password = user.Password, BusStops = user.BusStops });
             await _context.SaveChangesAsync();
@@ -63,16 +75,19 @@ namespace webapi.Controllers
             return CreatedAtAction("PostLogin", user);
         }
 
-        // DELETE: api/Users/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteUser(int id)
+        // DELETE: api/Users
+        [HttpDelete]
+        public async Task<IActionResult> DeleteUser()
         {
             if (_context == null || _context.Users.IsNullOrEmpty())
             {
                 return Problem("Entity set 'ZtmDbContext.Users' is null or empty.");
             }
 
-            var user = await _context.Users.FindAsync(id);
+            var login = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var user = await _context.Users.FirstAsync(e => e.Login == login);
+
             if (user == null) { return NotFound(); }
 
             _context.Users.Remove(user);
@@ -83,9 +98,10 @@ namespace webapi.Controllers
 
         // POST: api/Users/login
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
+        [AllowAnonymous]
         [Route("login")]
         [HttpPost]
-        public async Task<ActionResult<User>> PostLogin(User login)
+        public async Task<ActionResult<string>> PostLogin(User login)
         {
             if (_context == null || _context.Users.IsNullOrEmpty())
             {
@@ -95,23 +111,39 @@ namespace webapi.Controllers
             var user = await _context.Users.FirstAsync(e => e.Login == login.Login && e.Password == login.Password);
             if (user != null)
             {
-                return Ok(new { id = user.Id });
+                var securityKey = new
+                    SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JwtSettings:Key"]!));
+                var credentials = new SigningCredentials(securityKey,
+                    SecurityAlgorithms.HmacSha256);
+                var claims = new List<Claim>
+                {
+                    new Claim("sub", login.Login!)
+                };
+                var token = new JwtSecurityToken(
+                    _configuration["JwtSettings:Issuer"],
+                    _configuration.GetSection("JwtSettings:Audience").Get<List<string>>()![1],
+                    claims,
+                    expires: DateTime.Now.AddMinutes(120),
+                    signingCredentials: credentials);
+                return new JwtSecurityTokenHandler().WriteToken(token);
             }
 
             return NotFound();
 
         }
 
-        // GET: api/Users/5/BusStopsAndDelays
-        [Route("{id}/BusStopsAndDelays")]
+        // GET: api/Users/BusStopsAndDelays
+        [Route("BusStopsAndDelays")]
         [HttpGet]
-        public async Task<ActionResult<string>> GetUserBusStopsAndDelays(int id)
+        public async Task<ActionResult<string>> GetUserBusStopsAndDelays()
         {
             if (_context == null || _context.Users.IsNullOrEmpty())
             {
                 return Problem("Entity set 'ZtmDbContext.Users' is null or empty.");
             }
-            var user = await _context.Users.FindAsync(id);
+            var login = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var user = await _context.Users.FirstAsync(e => e.Login == login);
 
             if (user == null) { return NotFound(); }
 
@@ -133,16 +165,18 @@ namespace webapi.Controllers
             return System.Text.Json.JsonSerializer.Serialize(stopsInfo);
         }
 
-        // GET: api/Users/5/BusStops
-        [Route("{id}/BusStops")]
+        // GET: api/Users/BusStops
+        [Route("BusStops")]
         [HttpGet]
-        public async Task<ActionResult<string>> GetUserBusStops(int id)
+        public async Task<ActionResult<string>> GetUserBusStops()
         {
             if (_context == null || _context.Users.IsNullOrEmpty())
             {
                 return Problem("Entity set 'ZtmDbContext.Users' is null or empty.");
             }
-            var user = await _context.Users.FindAsync(id);
+            var login = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var user = await _context.Users.FirstAsync(e => e.Login == login);
 
             if (user == null) { return NotFound(); }
 
@@ -154,22 +188,24 @@ namespace webapi.Controllers
         // POST: api/Users/AddUserBusStop
         [Route("AddUserBusStop")]
         [HttpPost]
-        public async Task<IActionResult> AddUserBusStop(int[] ids)
+        public async Task<IActionResult> AddUserBusStop(int id)
         {
             if (_context == null || _context.Users.IsNullOrEmpty())
             {
                 return Problem("Entity set 'ZtmDbContext.Users' is null or empty.");
             }
-            var user = await _context.Users.FindAsync(ids[0]);
+            var login = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var user = await _context.Users.FirstAsync(e => e.Login == login);
 
             if (user == null) { return NotFound(); }
 
             var stopsId = GetBusStops(user.BusStops);
 
-            if (!stopsId.Contains(ids[1]))
+            if (!stopsId.Contains(id))
             {
-                if(stopsId.Count > 0) { user.BusStops += " "; }
-                user.BusStops += $"{ids[1]}";
+                if (stopsId.Count > 0) { user.BusStops += " "; }
+                user.BusStops += $"{id}";
                 await _context.SaveChangesAsync();
                 return Ok();
             }
@@ -179,21 +215,23 @@ namespace webapi.Controllers
         // DELETE: api/Users/DeleteUserBusStop
         [Route("DeleteUserBusStop")]
         [HttpDelete]
-        public async Task<IActionResult> DeleteUserBusStop(int[] ids)
+        public async Task<IActionResult> DeleteUserBusStop(int id)
         {
             if (_context == null || _context.Users.IsNullOrEmpty())
             {
                 return Problem("Entity set 'ZtmDbContext.Users' is null or empty.");
             }
-            var user = await _context.Users.FindAsync(ids[0]);
+            var login = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+            var user = await _context.Users.FirstAsync(e => e.Login == login);
 
             if (user == null) { return NotFound(); }
 
             var stopsId = GetBusStops(user.BusStops);
 
-            if (stopsId.Contains(ids[1]))
+            if (stopsId.Contains(id))
             {
-                stopsId = stopsId.Where(s => s != ids[1]).ToList();
+                stopsId = stopsId.Where(s => s != id).ToList();
 
                 StringBuilder sb = new StringBuilder();
                 foreach (var stop in stopsId)
@@ -216,7 +254,7 @@ namespace webapi.Controllers
             var busStops = new List<int>();
             if (busStopsStr.IsNullOrEmpty()) { return busStops; }
 
-            if(busStopsStr!.Contains(' '))
+            if (busStopsStr!.Contains(' '))
             {
                 return busStopsStr.Split(' ').Select(int.Parse).ToList();
             }

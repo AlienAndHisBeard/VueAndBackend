@@ -9,9 +9,9 @@ The solution contains an ASP.NET Api backend and Vue.js frontend.
 - User registration/login/deletion,
 - List of favourite stops of the user,
 - List of favourite stops of the user with their delays,
-- Adding and deleting favourite stops.
+- Adding and deleting favourite stops,
+- JWT Bearer authorization.
 
-TODO: JWT Bearer authorization
 ![BackendPreview](./Backend.png)
 
 # Frontend offers:

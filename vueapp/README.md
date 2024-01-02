@@ -1,6 +1,6 @@
 # vueapp
 
-This template should help get you started developing with Vue 3 in Vite.
+Frontend based on the default template available in Visual Studio.
 
 ## Recommended IDE Setup
 
