@@ -1,0 +1,59 @@
+@import './base.css';
+
+#app {
+  max-width: 1280px;
+  height: 100%;
+  margin: 0 auto;
+  padding: 2rem;
+  font-weight: normal;
+}
+
+a,
+.green {
+  text-decoration: none;
+  color: hsla(160, 100%, 37%, 1);
+  transition: 0.4s;
+  padding: 3px;
+}
+
+nav {
+  display: inline-flex;
+  padding: 5px;
+  width: 90%;
+  margin-top: 10px;
+  margin-bottom: 20px;
+
+  a {
+    font-weight: bold;
+    color: #2c3e50;
+
+    &.router-link-exact-active {
+      color: #42b983;
+    }
+  }
+}
+
+.logo {
+  display: block;
+  margin-right: 20px;
+  width: auto;
+}
+
+@media (hover: hover) {
+  a:hover {
+    background-color: hsla(160, 100%, 37%, 0.2);
+  }
+}
+
+@media (min-width: 1180px) {
+  body {
+    display: flex;
+    place-items: center;
+  }
+
+  #app {
+    display: flex;
+    flex-wrap: wrap;
+    padding: 0 2rem;
+  }
+}
